@@ -1,0 +1,20 @@
+{
+  "name": "solar-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lil-gui": "^0.19.1",
+    "three": "^0.160.1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.12"
+  }
+}
