@@ -33,11 +33,12 @@ gui.add(parameters, 'earthDistance').min(5).max(20).step(0.01).name('太阳地�
 parameters.earthSize = 1
 gui.add(parameters, 'earthSize').min(0.1).max(10).step(0.01).name('地球大小').onChange(() => {
   earth.scale.set(parameters.earthSize, parameters.earthSize, parameters.earthSize)
+  person.position.x = parameters.earthSize
 })
-parameters.earthRevolutionSpeed = 0.5
-gui.add(parameters, 'earthRevolutionSpeed').min(0.1).max(1).step(0.01).name('地球公转')
-parameters.earthRotationSpeed = 0.5
-gui.add(parameters, 'earthRotationSpeed').min(0.1).max(1).step(0.01).name('地球自转')
+parameters.earthRevolutionSpeed = 0.1
+gui.add(parameters, 'earthRevolutionSpeed').min(0).max(1).step(0.01).name('地球公转')
+parameters.earthRotationSpeed = 0.2
+gui.add(parameters, 'earthRotationSpeed').min(0).max(1).step(0.01).name('地球自转')
 
 parameters.moonDistance = 2
 gui.add(parameters, 'moonDistance').min(0).max(10).step(0.01).name('地月距离')
@@ -45,22 +46,22 @@ parameters.moonSize = 0.2
 gui.add(parameters, 'moonSize').min(0.1).max(10).step(0.01).name('月球大小').onChange(() => {
   moon.scale.set(parameters.moonSize, parameters.moonSize, parameters.moonSize)
 })
-parameters.moonRevolution = 2
-gui.add(parameters, 'moonRevolution').min(0.1).max(1).step(0.01).name('月球公转')
+parameters.moonRevolution = 1
+gui.add(parameters, 'moonRevolution').min(0).max(10).step(0.01).name('月球公转')
 
 
 const solarOrbit = new THREE.Group()
 scene.add(solarOrbit)
 
-const sphereGeometry = new THREE.SphereGeometry(1, 16, 32)
+// sun
+const sphereGeometry = new THREE.SphereGeometry(1, 16, 16)
 const sunMaterial = new THREE.MeshStandardMaterial({
   color: 'yellow',
 })
-
 const sun = new THREE.Mesh(sphereGeometry, sunMaterial)
 solarOrbit.add(sun)
 
-
+// sunlight
 const sunLight = new THREE.PointLight(0xffffff, 230, 20)
 sunLight.castShadow = true
 sunLight.shadow.mapSize.width = 512
@@ -68,11 +69,30 @@ sunLight.shadow.mapSize.height = 512
 sunLight.shadow.camera.near = 0.1
 sunLight.shadow.camera.far = 100
 
-
 solarOrbit.add(sunLight)
 const sunLightHelper = new PointLightHelper(sunLight, 0.1)
 solarOrbit.add(sunLightHelper)
 
+// stars
+const starsGeometry = new THREE.BufferGeometry()
+parameters.count = 500
+const positions = new Float32Array(parameters.count * 3)
+for (let i = 0;i < parameters.count; i++) {
+  positions[i * 3] = (Math.random() - 0.5) * 20
+  positions[i * 3 + 1] = (Math.random() - 0.5) * 20
+  positions[i * 3 + 2] = (Math.random() - 0.5) * 20
+}
+starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+const starsMaterial = new THREE.PointsMaterial({
+  size: 0.1,
+  color: 'white',
+  sizeAttenuation: true
+})
+const stars = new THREE.Points(starsGeometry, starsMaterial)
+solarOrbit.add(stars)
+
+
+// Earth orbit
 const earthOrbit = new THREE.Group()
 earthOrbit.position.x = parameters.earthDistance
 solarOrbit.add(earthOrbit)
@@ -169,13 +189,12 @@ const tick = () => {
   const deltaTime = elapsedTime - previousTime
   previousTime = elapsedTime
 
-  earthOrbit.position.x = parameters.earthDistance * Math.cos(elapsedTime * parameters.earthRevolutionSpeed)
-  earthOrbit.position.z = parameters.earthDistance * Math.sin(elapsedTime * parameters.earthRevolutionSpeed)
-  earthGroup.rotation.y = elapsedTime * parameters.earthRotationSpeed
-
-  moon.position.x = parameters.moonDistance * Math.cos(elapsedTime * parameters.moonRevolution)
-  moon.position.z = parameters.moonDistance * Math.sin(elapsedTime * parameters.moonRevolution)
-
+  // 地球公转
+  solarOrbit.rotation.y += deltaTime * parameters.earthRevolutionSpeed
+  // 地球自转
+  earthGroup.rotation.y += deltaTime * parameters.earthRotationSpeed
+  // 月球公转
+  earthOrbit.rotation.y += deltaTime * parameters.moonRevolution
 
   // Update controls
   controls.update()
