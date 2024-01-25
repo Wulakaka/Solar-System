@@ -74,23 +74,75 @@ const sunLightHelper = new PointLightHelper(sunLight, 0.1)
 solarOrbit.add(sunLightHelper)
 
 // stars
-const starsGeometry = new THREE.BufferGeometry()
-parameters.count = 500
-const positions = new Float32Array(parameters.count * 3)
-for (let i = 0;i < parameters.count; i++) {
-  positions[i * 3] = (Math.random() - 0.5) * 20
-  positions[i * 3 + 1] = (Math.random() - 0.5) * 20
-  positions[i * 3 + 2] = (Math.random() - 0.5) * 20
-}
-starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-const starsMaterial = new THREE.PointsMaterial({
-  size: 0.1,
-  color: 'white',
-  sizeAttenuation: true
-})
-const stars = new THREE.Points(starsGeometry, starsMaterial)
-solarOrbit.add(stars)
+parameters.count = 5000
+parameters.size = 0.01
+parameters.branches = 3
+parameters.radius = 5
+parameters.spin = 0.1
+parameters.randomness = 0.5
+parameters.randomnessPower = 4
+parameters.colorNear = '#ff6030'
+parameters.colorFar = '#1b3984'
 
+
+let starsGeometry = null
+let starsMaterial = null
+let stars = null
+
+const generateStars = () => {
+  if (stars) {
+    solarOrbit.remove(stars)
+  }
+  starsGeometry?.dispose()
+  starsMaterial?.dispose
+  starsGeometry = new THREE.BufferGeometry()
+  starsMaterial = new THREE.PointsMaterial({
+    size: parameters.size,
+    vertexColors: true,
+    sizeAttenuation: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  })
+  const positions = new Float32Array(parameters.count * 3)
+  const colors = new Float32Array(parameters.count * 3)
+  for (let i = 0; i < parameters.count; i++) {
+    const index = i % parameters.branches
+    const radius = parameters.radius * Math.random()
+    const branchAngle = (index / parameters.branches) * Math.PI * 2
+    const spinAngle = radius * parameters.spin
+    const randomX = Math.pow(Math.random(), parameters.randomnessPower) * parameters.randomness * (Math.random() > 0.5 ? 1 : -1) * radius
+    const randomY = Math.pow(Math.random(), parameters.randomnessPower) * parameters.randomness * (Math.random() > 0.5 ? 1 : -1) * radius
+    const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * parameters.randomness * (Math.random() > 0.5 ? 1 : -1) * radius
+    positions[i * 3] = Math.cos(branchAngle + spinAngle) * radius + randomX
+    positions[i * 3 + 1] = randomY
+    positions[i * 3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ
+
+    const colorNear = new THREE.Color(parameters.colorNear)
+    const colorFar = new THREE.Color(parameters.colorFar)
+    const mixedColor = colorNear.clone()
+    mixedColor.lerp(colorFar, radius / parameters.radius)
+    colors[i * 3] = mixedColor.r
+    colors[i * 3 + 1] = mixedColor.g
+    colors[i * 3 + 2] = mixedColor.b
+  }
+  starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  starsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  stars = new THREE.Points(starsGeometry, starsMaterial)
+  solarOrbit.add(stars)
+}
+
+generateStars()
+
+
+const guiStars = gui.addFolder('Stars')
+guiStars.add(parameters, 'count').min(100).max(100000).step(100).onFinishChange(generateStars)
+guiStars.add(parameters, 'size').min(0.001).max(0.1).step(0.001).onFinishChange(generateStars)
+guiStars.add(parameters, 'branches').min(2).max(20).step(1).onFinishChange(generateStars)
+guiStars.add(parameters, 'spin').min(-5).max(5).step(0.001).onFinishChange(generateStars)
+guiStars.add(parameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateStars)
+guiStars.add(parameters, 'randomnessPower').min(1).max(10).step(0.001).onFinishChange(generateStars)
+guiStars.addColor(parameters, 'colorNear').onFinishChange(generateStars)
+guiStars.addColor(parameters, 'colorFar').onFinishChange(generateStars)
 
 // Earth orbit
 const earthOrbit = new THREE.Group()
@@ -157,7 +209,7 @@ window.addEventListener('resize', () => {
 
 // Camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(10,10, 0)
+camera.position.set(10, 10, 0)
 scene.add(camera)
 
 
